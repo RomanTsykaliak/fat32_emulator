@@ -21,10 +21,9 @@ If not, see <https://www.gnu.org/licenses/>.
 #include <string.h>
 #include <unistd.h> // system calls
 #include <fcntl.h>
-#include <stdlib.h> // memory allocation
 #define FILE_SIZE_IN_MB 20 // 20MB
 #define MAX_INPUT_LENGTH 8 // length+2
-#define FILE_NAMES_BUFFER_SIZE 50
+#define NUM_ELEM(x) (sizeof(x) / sizeof((x)[0]))
 int createFileOfSize(const char *path,
                      off_t size) {
   // For a POSIX compliant operating system
@@ -45,76 +44,12 @@ int createFileOfSize(const char *path,
   close(fd); // Close the file
   return 1;
 }
-int format(const char *path) {
-  char command[FILE_NAMES_BUFFER_SIZE]=
-                             "/sbin/mkfs.vfat ";
-  strncat(command, path,
-         // -1 accounts for the null terminator
-         // already in command
-         sizeof(command) - strlen(command) - 1);
-  int result= system(command);
-  if(result == 0) {
-    printf("%s completed successfully.\n",
-           command);
-  } else {
-    printf("Error executing %s\n", command);
-  }
-  return 1;
-}
-char* create_unique_temp_folder() {
-  // POSIX compliant systems like Linux
-  const char *tmp="/tmp/fsXXXXXX";
-  char* template= malloc(strlen(tmp) + 1);
-  strcpy(template, tmp);
-  char* directory_name= mkdtemp(template);
-  if(directory_name == NULL) {
-    perror("Couldn't created a folder for "
-           "mounting.\n");
-    free(template);
-    return NULL;
-  }
-  return directory_name;
-}
-void delete_temp_folder(char *directory_name) {
-  if(rmdir(directory_name) == -1)
-    perror("Couldn't remove temporary "
-           "folder.\n");
-  free(directory_name);
-}
-int mount(const char *path, const char *dir) {
-  char command[FILE_NAMES_BUFFER_SIZE]=
-                               "mount -o loop ";
-  strncat(command, path,
-         sizeof(command) - strlen(command) - 1);
-  strncat(command, " ",
-         sizeof(command) - strlen(command) - 1);
-  strncat(command, dir,
-         sizeof(command) - strlen(command) - 1);
-  int result= system(command);
-  if(result == 0) {
-    printf("%s completed successfully.\n",
-           command);
-    return 1;
-  } else {
-    printf("Error executing %s\n", command);
-    return 0;
-  }
-}
-int unmount(const char *dir) {
-  char command[FILE_NAMES_BUFFER_SIZE]=
-                                      "umount ";
-  strncat(command, dir,
-          sizeof(command) -strlen(command) - 1);
-  int result= system(command);
-  if(result == 0) {
-    printf("%s completed successfully.\n",
-           command);
-    return 1;
-  } else {
-    printf("Error executing %s\n", command);
-    return 0;
-  }
-}
+// Function declarations
+void cd()     {printf("You entered cd\n");}
+void format() {printf("You entered format\n");}
+void ls()     {printf("You entered ls\n");}
+void mkdir()  {printf("You entered mkdir\n");}
+void touch()  {printf("You entered touch\n");}
 
 int main(int argc, char *argv[]) {
   if(argc < 2) {
@@ -145,34 +80,31 @@ int main(int argc, char *argv[]) {
     // Remove the newline character from the end
     // (if present)
     input[strcspn(input, "\n")]= '\0';
+    // List of commands
+    const char *commands[5];
+    commands[0]= "cd";
+    commands[1]= "format";
+    commands[2]= "ls";
+    commands[3]= "mkdir";
+    commands[4]= "touch";
+    // Array of function pointers initialization
+    void(*function_pointers[5])()=
+                 {cd, format, ls, mkdir, touch};
     // Check commands
-    if(        strcmp(input, "exit"  ) == 0) {
-      break;
-    } else if (strcmp(input, "cd"    ) == 0) {
-      printf("You entered cd\n");
-    } else if (strcmp(input, "format") == 0) {
-      //format(argv[1]);
-      char* tmp= create_unique_temp_folder();
-      if(tmp == NULL)
-        return 1;
-      if(mount(argv[1], tmp)) {
-        if(unmount(tmp))
-          delete_temp_folder(tmp);
-      } else {
-        delete_temp_folder(tmp);
-      }
-      
-    } else if (strcmp(input, "ls"    ) == 0) {
-      printf("You entered ls\n");
-    } else if (strcmp(input, "mkdir" ) == 0) {
-      printf("You entered mkdir\n");
-    } else if (strcmp(input, "touch" ) == 0) {
-      printf("You entered touch\n");
-    } else {
+    unsigned i;
+    for(i= 0; i < NUM_ELEM(commands); ++i) {
+      if(strcmp(input, commands[i]) == 0) {
+        function_pointers[i]();
+        break; // found command
+    } }
+    if(i == NUM_ELEM(commands)) { // not found
       printf("Unknown command.  Available "
-             "commands are exit, cd, format, "
-             "ls, mkdir, touch\n");
-  } }
+             "commands are ");
+      for(i= 0; i < NUM_ELEM(commands); ++i)
+        printf("%s, ", commands[i]);
+      puts(""); // printf("\n");
+    }
+  }
   printf("Exiting program.\n");
   return 0;
 }

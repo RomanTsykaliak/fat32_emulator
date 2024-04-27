@@ -11,7 +11,7 @@
 #   You should have received a copy of the GNU General Public License
 # along with this program.  If not, see
 # <https://www.gnu.org/licenses/>. 
-LIBS:= event #ldns
+LIBS:= #event ldns
 INCLUDE:= #lib
 override CFLAGS+=-g -DDEBUG -m64 -std=gnu11 -time -pipe \
 -Werror -Wall -Wextra
