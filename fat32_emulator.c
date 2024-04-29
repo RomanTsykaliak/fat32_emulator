@@ -17,13 +17,16 @@ more details.
 General Public License along with this program.
 If not, see <https://www.gnu.org/licenses/>.
 */
-#include <stdio.h> // file manipulation
+#include <stdio.h>  // file manipulation
 #include <string.h>
 #include <unistd.h> // system calls
 #include <fcntl.h>
+#include <ctype.h>  // isspace
 #define FILE_SIZE_IN_MB 20 // 20MB
-#define MAX_INPUT_LENGTH 8 // length+2
+#define MAX_INPUT_LENGTH 80 // length+2
 #define NUM_ELEM(x) (sizeof(x) / sizeof((x)[0]))
+// Suppress unused parameter warnings
+#define UNUSED(x) (void)(x)
 int createFileOfSize(const char *path,
                      off_t size) {
   // For a POSIX compliant operating system
@@ -45,11 +48,35 @@ int createFileOfSize(const char *path,
   return 1;
 }
 // Function declarations
-void cd()     {printf("You entered cd\n");}
-void format() {printf("You entered format\n");}
-void ls()     {printf("You entered ls\n");}
-void mkdir()  {printf("You entered mkdir\n");}
-void touch()  {printf("You entered touch\n");}
+void cd(const char *path) {
+  if(path == NULL)
+    printf("You entered cd without path\n");
+  else
+    printf("You entered cd %s\n", path);
+}
+void format(const char* na) {
+  // keep functions' signature the same
+  UNUSED(na);
+  printf("You entered format\n");
+}
+void ls(const char *path) {
+  if(path == NULL)
+    printf("You entered ls without path\n");
+  else
+    printf("You entered ls %s\n", path);
+}
+void mkdir(const char *name) {
+  if(name == NULL)
+    printf("Please enter name\n");
+  else
+    printf("You entered mkdir %s\n", name);
+}
+void touch(const char *name) {
+  if(name == NULL)
+    printf("Please enter name\n");
+  else
+    printf("You entered touch %s\n", name);
+}
 
 int main(int argc, char *argv[]) {
   if(argc < 2) {
@@ -57,6 +84,8 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   // Check if the file does not exist
+  UNUSED(argv);
+  /*
   if(access(argv[1], F_OK) == -1) {
     printf("The file '%s' does not exist.\n",
            argv[1]);
@@ -68,7 +97,21 @@ int main(int argc, char *argv[]) {
     printf("Successfully created the file of "
            "size %ld bytes.\n", size);
   }
+  */
   char input[MAX_INPUT_LENGTH];
+  const int delimiter= ' '; // a space
+  char *firstSpace, *secondPart;
+  // List of commands
+  const char *commands[5];
+  commands[0]= "cd";
+  commands[1]= "format";
+  commands[2]= "ls";
+  commands[3]= "mkdir";
+  commands[4]= "touch";
+  // Array of function pointers initialization
+  void(*function_pointers[5])(const char*)=
+                 {cd, format, ls, mkdir, touch};
+  unsigned i; // loop counter
   while(1) {
     printf("promt>"); // Print the prompt
     // Read user input
@@ -80,31 +123,30 @@ int main(int argc, char *argv[]) {
     // Remove the newline character from the end
     // (if present)
     input[strcspn(input, "\n")]= '\0';
-    // List of commands
-    const char *commands[5];
-    commands[0]= "cd";
-    commands[1]= "format";
-    commands[2]= "ls";
-    commands[3]= "mkdir";
-    commands[4]= "touch";
-    // Array of function pointers initialization
-    void(*function_pointers[5])()=
-                 {cd, format, ls, mkdir, touch};
+    // Take only command from the input string
+    firstSpace= strchr(input, delimiter);
+    secondPart= NULL; // for just the command
+    if(firstSpace != NULL) {
+      *firstSpace= '\0'; // edit input
+      secondPart= firstSpace + 1; //of the input
+      // Skip leading white spaces
+      while(isspace(*secondPart))
+        ++secondPart;
+      if(strlen(secondPart) == 0)
+        secondPart= NULL;
+    }
     // Check commands
-    unsigned i;
     for(i= 0; i < NUM_ELEM(commands); ++i) {
       if(strcmp(input, commands[i]) == 0) {
-        function_pointers[i]();
+        function_pointers[i](secondPart);
         break; // found command
     } }
     if(i == NUM_ELEM(commands)) { // not found
-      printf("Unknown command.  Available "
-             "commands are ");
-      for(i= 0; i < NUM_ELEM(commands); ++i)
-        printf("%s, ", commands[i]);
-      puts(""); // printf("\n");
-    }
-  }
+      printf("Unknown command \"%s\".  There "
+      "are %u commands available:\n", input, i);
+      for(i= 0; i < NUM_ELEM(commands); ++i) {
+        printf("%s\n", commands[i]);
+  } } }
   printf("Exiting program.\n");
   return 0;
 }
