@@ -27,6 +27,7 @@ If not, see <https://www.gnu.org/licenses/>.
 #define NUM_ELEM(x) (sizeof(x) / sizeof((x)[0]))
 // Suppress unused parameter warnings
 #define UNUSED(x) (void)(x)
+char PROMPT[MAX_INPUT_LENGTH]= "/"; // evil
 int createFileOfSize(const char *path,
                      off_t size) {
   // For a POSIX compliant operating system
@@ -49,11 +50,14 @@ int createFileOfSize(const char *path,
 }
 // Function declarations
 void cd(const char *path) {
-  if(path == NULL)
+  // Only absolute path is allowed.
+  if(path == NULL) {
     printf("You entered cd without path\n");
-  else
+    strncpy(PROMPT,  "/", MAX_INPUT_LENGTH-1);
+  } else {
     printf("You entered cd %s\n", path);
-}
+    strncpy(PROMPT, path, MAX_INPUT_LENGTH-1);
+} }
 void format(const char* na) {
   // keep functions' signature the same
   UNUSED(na);
@@ -109,11 +113,17 @@ int main(int argc, char *argv[]) {
   commands[3]= "mkdir";
   commands[4]= "touch";
   // Array of function pointers initialization
-  void(*function_pointers[5])(const char*)=
-                 {cd, format, ls, mkdir, touch};
-  unsigned i; // loop counter
+  typedef void(*FunctionPointers)(const char*);
+  FunctionPointers function_pointers[5]= {
+    cd,
+    format,
+    ls,
+    mkdir,
+    touch
+  };
+  unsigned i, end= NUM_ELEM(commands); // loop
   while(1) {
-    printf("promt>"); // Print the prompt
+    printf("%s>", PROMPT);
     // Read user input
     if(fgets(input, MAX_INPUT_LENGTH, stdin) ==
                                          NULL) {
@@ -136,15 +146,15 @@ int main(int argc, char *argv[]) {
         secondPart= NULL;
     }
     // Check commands
-    for(i= 0; i < NUM_ELEM(commands); ++i) {
+    for(i= 0; i < end; ++i) {
       if(strcmp(input, commands[i]) == 0) {
         function_pointers[i](secondPart);
         break; // found command
     } }
-    if(i == NUM_ELEM(commands)) { // not found
+    if(i == end) { // not found
       printf("Unknown command \"%s\".  There "
       "are %u commands available:\n", input, i);
-      for(i= 0; i < NUM_ELEM(commands); ++i) {
+      for(i= 0; i < end; ++i) {
         printf("%s\n", commands[i]);
   } } }
   printf("Exiting program.\n");
