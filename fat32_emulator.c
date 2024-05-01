@@ -19,7 +19,8 @@ If not, see <https://www.gnu.org/licenses/>.
 */
 #include <stdio.h>  // file manipulation
 #include <string.h>
-#include <unistd.h> // system calls
+// system calls, chdir for cd
+#include <unistd.h>
 #include <fcntl.h>
 #include <ctype.h>  // isspace
 #define FILE_SIZE_IN_MB 20 // 20MB
@@ -31,9 +32,8 @@ char PROMPT[MAX_INPUT_LENGTH]= "/"; // evil
 int createFileOfSize(const char *path,
                      off_t size) {
   // For a POSIX compliant operating system
-  int fd;
-  // Open a file for reading/writing
-  fd= open(path, O_WRONLY | O_CREAT,
+  int fd= open(path, O_WRONLY | O_CREAT,
+           // Open a file for reading/writing
            S_IRUSR | S_IWUSR);
   if(fd == -1) {
     perror("Error opening file.");
@@ -42,13 +42,13 @@ int createFileOfSize(const char *path,
   // Truncate the file to the specified size
   if(ftruncate(fd, size) == -1) {
     perror("Error setting file size.");
-    close(fd);
-    return -1;
+    close(fd); // Close the file
+    return -1; // failure
   }
   close(fd); // Close the file
-  return 1;
+  return 1; // SUCCESS
 }
-// Function declarations
+// Function declarations for prompt
 void cd(const char *path) {
   // Only absolute path is allowed.
   if(path == NULL) {
@@ -87,9 +87,7 @@ int main(int argc, char *argv[]) {
     printf("Please provide a file path.\n");
     return 1;
   }
-  // Check if the file does not exist
-  UNUSED(argv);
-  /*
+  // Check if the file does not exist; create it
   if(access(argv[1], F_OK) == -1) {
     printf("The file '%s' does not exist.\n",
            argv[1]);
@@ -101,7 +99,7 @@ int main(int argc, char *argv[]) {
     printf("Successfully created the file of "
            "size %ld bytes.\n", size);
   }
-  */
+  // PROMPT
   char input[MAX_INPUT_LENGTH];
   const int delimiter= ' '; // a space
   char *firstSpace, *secondPart;
@@ -135,23 +133,23 @@ int main(int argc, char *argv[]) {
     input[strcspn(input, "\n")]= '\0';
     // Take only command from the input string
     firstSpace= strchr(input, delimiter);
-    secondPart= NULL; // for just the command
+    secondPart= NULL; // for the command only
     if(firstSpace != NULL) {
-      *firstSpace= '\0'; // edit input
+      *firstSpace= '\0'; // split the input
       secondPart= firstSpace + 1; //of the input
       // Skip leading white spaces
       while(isspace(*secondPart))
         ++secondPart;
-      if(strlen(secondPart) == 0)
+      if(strlen(secondPart) == 0) // no 2nd part
         secondPart= NULL;
     }
     // Check commands
     for(i= 0; i < end; ++i) {
       if(strcmp(input, commands[i]) == 0) {
         function_pointers[i](secondPart);
-        break; // found command
+        break; // found a command
     } }
-    if(i == end) { // not found
+    if(i == end) { // not found a command
       printf("Unknown command \"%s\".  There "
       "are %u commands available:\n", input, i);
       for(i= 0; i < end; ++i) {
